@@ -1,0 +1,51 @@
+# Central configuration for the hotel cancellation pipeline.
+# Every number that affects results lives here, not in code.
+
+paths:
+  raw_dir: data/raw
+  processed_dir: data/processed
+  models_dir: models
+  reports_dir: reports
+  figures_dir: reports/figures
+
+raw_files:
+  Resort: H1.csv
+  City: H2.csv
+
+random_state: 42
+
+# Temporal split on arrival date (inclusive bounds).
+# Train on the past, tune on the next season, report on unseen future arrivals.
+split:
+  train_end: "2016-12-31"
+  valid_end: "2017-04-30"
+  # test = everything after valid_end (May - Aug 2017)
+
+cleaning:
+  adr_max: 1000          # one booking at 5,400/night is a data-entry error
+  max_children: 5        # rows with 9-10 children/babies are entry errors
+  max_babies: 5
+  rare_category_min_count: 30
+
+# Columns that are only known AFTER the outcome (or at check-in) -> never used as features.
+leakage_columns:
+  - reservation_status        # literally encodes the label
+  - reservation_status_date   # date the status was set (= cancellation date)
+  - assigned_room_type        # assigned at check-in; mismatch rate 5% for cancels vs 42% for stays
+  - required_car_parking_spaces  # recorded at arrival; 0% cancellation when > 0
+  - booking_changes           # counts changes up to check-in / cancellation
+
+model:
+  hgb_search:               # small, honest search evaluated on the validation season
+    learning_rate: [0.05, 0.1]
+    max_leaf_nodes: [31, 63]
+    min_samples_leaf: [20, 100]
+    l2_regularization: [0.0, 1.0]
+  max_iter: 600
+  logreg_C: [0.1, 1.0]
+
+# Business assumptions for the overbooking decision (EUR).
+# Predicting "will cancel" lets the hotel resell the room.
+business:
+  resell_rate: 0.5        # share of a freed room's revenue actually recovered
+  walk_cost: 250          # cost of relocating a guest who shows up to an overbooked hotel

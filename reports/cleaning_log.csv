@@ -1,0 +1,15 @@
+rule,action,rows,reason
+whitespace_padding,strip,834561,"Source export pads fields to fixed width ('BB       ', '       NULL')"
+agent_null,flag -> 'none' category,16340,"NULL agent means booked without a travel agent (informative, not unknown)"
+company_null,collapse to has_company flag,112593,94% missing; 350+ ids too sparse to learn from
+children_missing,impute 0,4,"Only 4 rows; adults recorded, no evidence of children"
+meal_undefined,map -> SC,1169,Data dictionary: Undefined and SC are the same package
+market_segment_undefined,set missing,2,Placeholder value with no meaning
+distribution_channel_undefined,set missing,5,Placeholder value with no meaning
+country_missing,impute 'UNK',488,Country unknown at booking time
+week_number_inconsistent,"drop column, derive from date",64054,Source week numbering disagrees with the ISO calendar for ~54% of rows
+zero_guests,drop row,180,Booking with no guests
+negative_adr,drop row,1,Negative nightly price
+extreme_adr,drop row,1,"ADR above 1000 (5,400/night entry error)"
+implausible_kids,drop row,3,9-10 children/babies in a single room
+exact_duplicates,keep + flag (dup_group_size),31980,"No booking ID in source; identical rows are mostly group blocks. Temporal split keeps each group on one side, so no train/test contamination"
